@@ -37,30 +37,24 @@
 
 ---
 
-### 2026-08-08 M1 ComfyUI + XPU 基线打通
+### 2026-08-09 主注意力 OOM 根因 + sub-quadratic 突破（T2V 端到端跑通）
 
-- 目的：验证 Intel Arc 核显（Meteor Lake 7 Xe）能否在 XPU 后端下跑通 ComfyUI 出图。
-- 环境/配置：
-  - ComfyUI portable intel 版 v0.31.0（`ComfyUI_windows_portable_intel.7z`，1.6GB）
-  - 内嵌 Python 3.13.14 + PyTorch **2.13.0+xpu**（自带 XPU 支持，无需额外装 IPEX）
-  - 启动参数：`--windows-standalone-build --use-split-cross-attention`
+- 目的：让 H3 主注意力（序列长 9326）不再 OOM，跑通 640×384×124 帧 T2V。
+- 环境/配置：ComfyUI portable v0.31.0 + torch 2.13.0+xpu，Arc iGPU 12.4GB 共享显存，启动参数 `--lowvram --use-quad-cross-attention`。
 - 操作步骤：
-  1. 下载 portable intel 7z 并解压（7-Zip）
-  2. `python -c "import torch; print(torch.xpu.is_available())"` → True
-  3. 启动 ComfyUI，验证 `/system_stats` → `xpu:0 Intel(R) Graphics`，VRAM 12.1GB
-  4. 下载 SD1.5（`v1-5-pruned-emaonly.safetensors`，4.0GB，hf-mirror 镜像）
-  5. 提交 API 工作流：512x512、20 步、euler/normal、cfg 7
-- 结果：
-  - ✅ 出图成功：`xpu_baseline_00001_.png`（512x512 RGB，417KB，有效图）
-  - ⏱ 总耗时 ~97s（含模型加载 + 首轮编译）
-  - 📊 VRAM 总 13,007,839,232 字节（12.1GB），核显实际可分配显存
-  - 日志确认无 `UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY`（`--use-split-cross-attention` 生效）
-- 报错原文：无。
-- 耗时：约 40 分钟（下载 1.6GB 包 + 4GB 模型为主）。
-- 结论 / 下一步：
-  - **路径 A（XPU）确认可用**，且显存预算提升到 12.1GB（原估 8GB）。
-  - M1 完成。下一步 M2：量化研究（INT4/GGUF）+ 模型下载方案。
-  - 后续需分离"纯采样耗时"：本回合含加载与编译，需用 KSampler 预热后再测。
+  - 首次提交（无 `--lowvram`）：文本编码器 14.2GB 整体加载进 XPU → 报错 39。
+  - 加 `--lowvram` 后：文本编码器走 CPU，DiT 部分加载（4520MB 在 XPU，10642MB 卸载）；首次 9326-token 注意力仍 OOM。
+  - 读源码定位：`attention_split`（`--use-split-cross-attention`）会一次性物化 r1 = 56×9326×9326×2B ≈ 9.7GB 分数矩阵，12.1GB 显存放不下。
+  - 曾改 `attention.py`：steps 上限 64→1024、slice_size 改向上取整（对 split 有效但非根治）。
+  - 最终改用 stock 参数 `--use-quad-cross-attention` → 走 `attention_sub_quad`（分块 online softmax，s=9326 时 query_chunk=1024/kv_chunk=9326，峰值块内存约 1GB）。
+- 结果：2 步调试工作流（同样 640×384×124 潜在）端到端成功，产出 `ComfyUI\output\minimax_h3_xpu_t2v_00001_.mp4`（1.66MB，含音频）。
+- 报错原文：
+  - `RuntimeError: level_zero backend failed with error: 39 (UR_RESULT_ERROR_OUT_OF_DEVICE_MEMORY)`
+  - `RuntimeError: level_zero backend failed with error: 40 (UR_RESULT_ERROR_OUT_OF_RESOURCES)`（`raise_non_oom` 不识别 error 40，不会自动加 steps 重试）
+  - `RuntimeError: level_zero backend failed with error: 20 (UR_RESULT_ERROR_DEVICE_LOST)`（硬 OOM 后的连锁，需重启服务器）
+  - `torch.OutOfMemoryError: XPU out of memory. Tried to allocate 9.07 GiB. GPU 0 has a total capacity of 12.11 GiB ...`
+- 耗时：2 步调试共 30 分 58 秒（文本编码约 6 分 + 采样 2 步约 18.5 分 ≈ 9.1 分/步 + VAE 解码/存片约 6 分）。
+- 结论 / 下一步：sub-quadratic 是 H3 在 12GB iGPU 上的可用注意力路径；42 步全量约 6.4 小时，已通宵执行（prompt_id `00d51eb0`），待核验成片质量与耗时。
 
 ---
 
