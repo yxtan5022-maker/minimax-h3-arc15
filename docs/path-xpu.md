@@ -14,10 +14,13 @@ Intel 官方 2026-08-03 宣布对 MiniMax H3 提供 **Day-0 支持**（Intel 新
 | 层 | 组件 | 状态 |
 |---|---|---|
 | 驱动 | Intel Graphics Driver 32.0.101.6556 | ✅ 已装 |
-| PyTorch + XPU | intel-extension-for-pytorch (IPEX) | ⏳ 待装 |
-| 运行时 | oneAPI / SYCL（随 IPEX 或独立安装） | ⏳ 待装 |
-| ComfyUI | 官方 portable Intel 版，或 `--use-ipex` | ⏳ 待装 |
+| PyTorch + XPU | torch 2.13.0+xpu（便携版内嵌，自带 XPU） | ✅ M1 验证可用 |
+| 运行时 | oneAPI / SYCL（随 torch 附带） | ✅ 可用 |
+| ComfyUI | portable intel 版 v0.31.0 + `--use-split-cross-attention` | ✅ M1 出图成功 |
 | 模型 | Comfy-Org/MiniMax-H3 重打包文件 | ⏳ 待下 |
+
+> **M1 实测（2026-08-08）**：`xpu:0 Intel(R) Graphics`，可用显存 **12.1GB**，
+> SD1.5 512x512 20 步出图成功（总 ~97s 含加载）。路径 A 核心已验证。
 
 ## 关键问题
 
