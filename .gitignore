@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# 大模型 / ComfyUI 资源（不提交）
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+*.ckpt
+models/
+output/
+ComfyUI/
+temp/
+downloads/
+
+# 环境与凭据
+.env
+*.key
+*credential*
+
+# 日志与临时
+*.log
+*.tmp
+node_modules/
+
+# 系统
+Thumbs.db
+Desktop.ini
+.DS_Store
