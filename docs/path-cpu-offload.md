@@ -25,13 +25,15 @@
 
 ## 关键问题
 
-- diffusers 对 H3 的集成在 **PR #14355**（Draft 状态），`enable_group_offload` 是否可用需确认。
+- ~~diffusers 对 H3 的集成在 **PR #14355**（Draft 状态）~~ ✅ **已于 2026-08-05 合并**。
+  注意是 **Modular Diffusers blocks only**（`MiniMaxH3Blocks` / `MiniMaxH3Ref2VABlocks`），
+  没有 `DiffusionPipeline` 半边；`enable_group_offload` 对 modular pipeline 的兼容性需确认。
 - 磁盘 IO 是瓶颈：NVMe 顺序读 ~3GB/s，每交换 11GB ≈ 4s，可接受；但页文件交换频繁会"假死"。
 - ComfyUI 的动态显存卸载（layered offload）在非 CUDA 后端是否生效需实测。
 
 ## 验证步骤（M3）
 
-- [ ] 确认 diffusers PR 状态；需要则安装对应 git 版本
+- [x] 确认 diffusers PR 状态 → 已合并（2026-08-05，modular-only），`pip install -U diffusers` 即可
 - [ ] 页文件 → 64GB，重启生效
 - [ ] 先用最小文件集（VAE + 编码器）验证加载管线
 - [ ] 全量 FL2VA 加载，记录加载耗时与峰值内存

@@ -2,7 +2,8 @@
 
 > 目标：在没有 NVIDIA 独显、只有 Intel Arc 核显的轻薄本上，把 MiniMax H3（开源全模态视频生成模型）跑起来。
 
-**当前状态**：🔬 研究中（M0+M1 已完成：ComfyUI XPU 跑通，核显可用显存 12.1GB）
+**当前状态**：🔬 研究中（M0+M1 完成：XPU 跑通、显存 12.1GB、T2V 端到端成功；
+M2 量化调研完成：候选栈 MiniStack ~19GB / W4A8 备选，见 [docs/quant-catalog.md](docs/quant-catalog.md)）
 
 ## 为什么做这个项目
 
@@ -48,11 +49,20 @@ Intel 官方已宣布对 H3 提供 **Day-0 支持**（2026-08-03，Intel 新闻�
 - 可行性总报告：[docs/feasibility.md](docs/feasibility.md)
 - 研究路线图：[docs/roadmap.md](docs/roadmap.md)
 - 实验记录：[docs/experiments-log.md](docs/experiments-log.md)
+- 社区量化目录（含 SHA-256）：[docs/quant-catalog.md](docs/quant-catalog.md)
 
 ## 运行环境检测
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/env-check.ps1
+```
+
+## 下载量化模型（带 SHA-256 校验 + 断点续传）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/download-h3-models.ps1 -Set ministack -ComfyUIPath C:\ComfyUI
+# 仅校验已下载文件:
+powershell -ExecutionPolicy Bypass -File scripts/download-h3-models.ps1 -Set ministack -ComfyUIPath C:\ComfyUI -VerifyOnly
 ```
 
 ## 许可
